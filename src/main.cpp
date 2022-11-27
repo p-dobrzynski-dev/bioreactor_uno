@@ -1,14 +1,21 @@
 #include <Arduino.h>
 #include <Arduino_FreeRTOS.h>
 #include <semphr.h> // add the FreeRTOS functions for Semaphores (or Flags).
+#include "StringSplitter.h"
+#include <ArduinoQueue.h>
+
+// Queue declaration
+#define QUEUE_SIZE_ITEMS 10
+ArduinoQueue<String> responseMessageQueue(QUEUE_SIZE_ITEMS);
 
 float PHValue_1;
+bool isDebug = false;
 
 // Declare a mutex Semaphore Handle which we will use to manage the Serial Port.
 // It will be used to ensure only one Task is accessing this resource at any time.
 SemaphoreHandle_t xSerialSemaphore;
 
-//define task handles
+// define task handles
 TaskHandle_t TaskBlink_Handler;
 
 // define two Tasks for DigitalRead & AnalogRead
@@ -28,6 +35,8 @@ void setup()
   {
     ; // wait for serial port to connect. Needed for native USB, on LEONARDO, MICRO, YUN, and other 32u4 based boards.
   }
+
+  Serial.println("CONNECTED");
 
   // Semaphores are useful to stop a Task proceeding, where it should be paused to wait,
   // because it is sharing a resource, such as the Serial port.
@@ -60,8 +69,8 @@ void setup()
       2 // Priority
       ,
       NULL); // Task Handle
-  
-   xTaskCreate(
+
+  xTaskCreate(
       TaskSerialStatusPrint, "TaskSerialStatusPrint" // A name just for humans
       ,
       128 // Stack size
@@ -88,14 +97,8 @@ void TaskSerialReadCli(void *pvParameters)
 {
   (void)pvParameters;
 
-  bool isDebug = false;
-
   for (;;) // A Task shall never return or exit.
   {
-
-    if (!isDebug) {
-        vTaskSuspend(TaskBlink_Handler); 
-    }
 
     if (xSemaphoreTake(xSerialSemaphore, (TickType_t)5) == pdTRUE)
     {
@@ -103,17 +106,34 @@ void TaskSerialReadCli(void *pvParameters)
       // We want to have the Serial Port for us alone, as it takes some time to print,
       // so we don't want it getting stolen during the middle of a conversion.
       // print out the value you read:
-      if (Serial.available() > 0 ){
+      if (Serial.available() > 0)
+      {
         String received = Serial.readStringUntil('\n');
-        Serial.println(received);
-        if (received == "DEBUG|1") {
-            isDebug = true;
-            vTaskResume(TaskBlink_Handler);
-        } else if (received == "DEBUG|0")
+        // int StringCount = 0;
+
+        StringSplitter *splitter = new StringSplitter(received, '|', 5);
+        int itemCount = splitter->getItemCount();
+
+
+        if (itemCount > 4)
         {
-            vTaskSuspend(TaskBlink_Handler); 
+          String errorMessage = received + "|ERROR:1";
+          responseMessageQueue.enqueue(errorMessage);
         }
-        
+
+        for (int i = 0; i < itemCount; i++)
+        {
+          String item = splitter->getItemAtIndex(i);
+        }
+
+        if (received == "DEBUG|1")
+        {
+          isDebug = true;
+        }
+        else if (received == "DEBUG|0")
+        {
+          isDebug = false;
+        }
       }
 
       xSemaphoreGive(xSerialSemaphore); // Now free or "Give" the Serial Port for others.
@@ -128,25 +148,34 @@ void TaskSerialStatusPrint(void *pvParameters)
   for (;;) // A Task shall never return or exit.
   {
 
-    // if (!isDebug) {
-    //   continue;
-    // }
- 
+    if (!responseMessageQueue.isEmpty())
+    {
+      if (xSemaphoreTake(xSerialSemaphore, (TickType_t)5) == pdTRUE)
+      {
+        Serial.println(responseMessageQueue.dequeue());
+
+        xSemaphoreGive(xSerialSemaphore); // Now free or "Give" the Serial Port for others.
+      }
+    }
+
+    if (isDebug)
+    {
+      if (xSemaphoreTake(xSerialSemaphore, (TickType_t)5) == pdTRUE)
+      {
+        // We were able to obtain or "Take" the semaphore and can now access the shared resource.
+        // We want to have the Serial Port for us alone, as it takes some time to print,
+        // so we don't want it getting stolen during the middle of a conversion.
+        // print out the value you read:
+        Serial.print("$<PH:");
+        Serial.print(PHValue_1, 3);
+        Serial.print("?");
+        Serial.println(">&");
+
+        xSemaphoreGive(xSerialSemaphore); // Now free or "Give" the Serial Port for others.
+      }
+    }
     // See if we can obtain or "Take" the Serial Semaphore.
     // If the semaphore is not available, wait 5 ticks of the Scheduler to see if it becomes free.
-    if (xSemaphoreTake(xSerialSemaphore, (TickType_t)5) == pdTRUE)
-    {
-      // We were able to obtain or "Take" the semaphore and can now access the shared resource.
-      // We want to have the Serial Port for us alone, as it takes some time to print,
-      // so we don't want it getting stolen during the middle of a conversion.
-      // print out the value you read:
-      Serial.print("$<PH:");
-      Serial.print(PHValue_1, 3);
-      Serial.print("?");
-      Serial.println(">&");
-
-      xSemaphoreGive(xSerialSemaphore); // Now free or "Give" the Serial Port for others.
-    }
 
     vTaskDelay(1); // one tick delay (15ms) in between reads for stability
   }
@@ -197,6 +226,6 @@ void TaskAnalogPHRead(void *pvParameters __attribute__((unused))) // This is a T
     for (int i = 2; i < 8; i++) // take the average value of 6 center sample
       avgValue += buf[i];
     float phValue = (float)avgValue * 5.0 / 1024 / 6; // convert the analog into millivolt
-    PHValue_1 = 3.5 * phValue;                          // convert the millivolt into pH value
+    PHValue_1 = 3.5 * phValue;                        // convert the millivolt into pH value
   }
 }
