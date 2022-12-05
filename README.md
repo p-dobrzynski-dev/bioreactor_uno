@@ -1,6 +1,6 @@
-# BioReaktor - sterowanie
+# BioReaktor - układ sterowania
 ## _Instrukcja dla projektu układu elektronicznego_
-Ten dokument zawiera instrukcje dzięki którym możliwe jest uruchomienie programu na płytce ArduinoUno oraz opis użytego protokołu komunikacyjnego wraz z przykładamai
+Ten dokument zawiera instrukcje dzięki którym możliwe jest uruchomienie programu na płytce ArduinoUno oraz opis użytego protokołu komunikacyjnego wraz z przykładami.
 
 ### Użyte technologie:
 - [ArduinoUno Rev3] - 
@@ -9,6 +9,31 @@ Ten dokument zawiera instrukcje dzięki którym możliwe jest uruchomienie progr
 - [freeRTOS] - 
 
 ### Uruchomienie programu 
+
+# Komunikacja
+
+Komunikacja z komputerem odbywa się po przez wykorzystanie **portu szeregowego**, to obsługi protokołu można wykorzystać każdy terminal portu szeregowe. Dostępnę są takie rowziązania jak:
+
+- **ArduinoIDE** - Serial Monitor
+- **Tera Term**
+- **Putty**
+
+Prędkość tranmisji obecnie ustawiona jest na **115200** ale można ją zmienić w kodzie plik ```src/main.cpp``` .
+
+```sh
+...
+// the setup function runs once when you press reset or power the board
+void setup()
+{
+  // initialize serial communication at 115200 bits per second:
+  Serial.begin(115200);
+
+  while (!Serial)
+  {
+    ; // wait for serial port to connect. Needed for native USB, on LEONARDO, MICRO, YUN, and other 32u4 based boards.
+  }
+...
+```
 
 
 # Odbierane wiadomości
