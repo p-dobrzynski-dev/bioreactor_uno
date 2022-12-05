@@ -15,17 +15,39 @@ Ten dokument zawiera instrukcje dzięki którym możliwe jest uruchomienie progr
 
 # Komendy
 
-#### Ramka szybka 
+❗ Wszystkie komendy wysyłane musi poprzedzać dodanie  `CMD`.
+
+##### ==DEBUG_FAST==
+**Komenda ramki szybkiej** - wyłącza oraz włącza wysyłanie danych szybkich **domyślnie włączona** 
 
 ```sh
-DEBUG_FAST,{on/off}  // {on/off} - 0 (wyłączone) lub 1 (włączone)
+CMD,DEBUG_FAST,{on/off} 
 ```
-- **on/off** - **0**(wyłączone) lub **1**(włączone)
+| Argument | Zakres wartości | Opis argumentów 
+| -------- | --------------- | ----------- |
+| {on/off}   | **0** / **1** | **0** (wyłączone) lub **1** (włączone)
 
-Przykład:
+`Przykład:`
 ```sh
-DEBUG_FAST,1 // Włączenie ramki szybkiej
+CND,DEBUG_FAST,1 // Włączenie ramki szybkiej
 ```
+***
+##### ==DEBUG_PUMP==
+**Komenda ramki szybkiej** - wyłącza oraz włącza wysyłanie danych z pomp  **domyślnie włączona** 
+
+```sh
+CMD,DEBUG_PUMP,{on/off} 
+```
+| Argument | Zakres wartości | Opis argumentów 
+| -------- | --------------- | ----------- |
+| {on/off}   | **0** / **1** | **0** (wyłączone) lub **1** (włączone)
+
+`Przykład:`
+```sh
+CMD,DEBUG_PUMP,0 // Wyłączenie ramki pomp
+```
+***
+
 ## License
 
 MIT
