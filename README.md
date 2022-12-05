@@ -17,7 +17,7 @@ Ten dokument zawiera instrukcje dzięki którym możliwe jest uruchomienie progr
 
 ❗ Wszystkie komendy wysyłane musi poprzedzać dodanie  `CMD`.
 
-#### DEBUG_FAST
+### DEBUG_FAST
 **Komenda ramki szybkiej** - wyłącza oraz włącza wysyłanie danych szybkich **domyślnie włączona** 
 
 ```sh
@@ -32,7 +32,7 @@ CMD,DEBUG_FAST,{on/off}
 CND,DEBUG_FAST,1 // Włączenie ramki szybkiej
 ```
 ***
-#### DEBUG_PUMP
+### DEBUG_PUMP
 **Komenda ramki szybkiej** - wyłącza oraz włącza wysyłanie danych z pomp  **domyślnie włączona** 
 
 ```sh
