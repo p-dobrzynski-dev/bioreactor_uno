@@ -21,14 +21,30 @@ Po typie ramki pojawia się znak `?` a następnie przekazywane są dane, zależn
 
 
 ### Ramka szybka
-Opis ramki szybkiej
+Opis ramki szybkiej `DF`
 
+```sh
+<DF?PH:{Czujnik PH},TEMP:{Czujnik temperatury},GS:{Czujnik tlenu}>&
+```
+Wartości otrzymywane z czujników (```{Czujnik PH}```, ```{Czujnik temperatury}```,oraz ```{Czujnik tlenu}```)są podawane z dokładnością do **trzeciego** miejsca po przecinku.
+
+`Przykład: `
 ```sh
 <DF?PH:1.736,TEMP,21.997,GS:1.210>&
 ```
 
+
 ### Ramka pomp
-Opis ramki pomp
+Opis ramki szybkiej `DP`
+```sh
+$<DM?1:{Pompa 1},2:{Pompa 2},3:{Pompa 3},4:{Pompa 4}>&
+```
+- mininlana wartość - **0**
+- maksymalna wartość - **255**
+
+Wartości otrzymywane z pomp (```{Pompa 1}```,```{Pompa 2}```,```{Pompa 3}```,oraz ```{Pompa 4}```), z zakresu ```0-255```  są tak naprawdę odzwierciedleniem wartości zadanych przez użytkownika, jest to ramka barzdziej pomocnicza. 
+
+`Przykład: `
 ```sh
 $<DM?1:25,2:137,3:151,4:92>&
 ```
