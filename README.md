@@ -11,7 +11,27 @@ Ten dokument zawiera instrukcje dzięki którym możliwe jest uruchomienie progr
 ### Uruchomienie programu 
 
 
-### Odbierane wiadomości
+# Odbierane wiadomości
+
+❗Każda z ramek ma taki sam format przesyłanych wiadomości. Wiadomość zaczyna się od znaku `$<` następnym elementem jest typ obbieranej ramki obecnie są dwa: 
+- `DF` - ramka szybka
+- `DP` - ramka pomp
+
+Po typie ramki pojawia się znak `?` a następnie przekazywane są dane, zależności od typu ramki dane różnią się. Wiadomość zakończona jest znakami `>&`.
+
+
+### Ramka szybka
+Opis ramki szybkiej
+
+```sh
+<DF?PH:1.736,TEMP,21.997,GS:1.210>&
+```
+
+### Ramka pomp
+Opis ramki pomp
+```sh
+$<DM?1:25,2:137,3:151,4:92>&
+```
 
 # Komendy
 
