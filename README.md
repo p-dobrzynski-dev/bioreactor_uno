@@ -49,20 +49,20 @@ Po typie ramki pojawia się znak `?` a następnie przekazywane są dane, zależn
 Opis ramki szybkiej `DF`
 
 ```sh
-<DF?PH:{Czujnik PH},TEMP:{Czujnik temperatury},GS:{Czujnik tlenu}>&
+$<DF?PH:{Czujnik PH},TEMP:{Czujnik temperatury},GS:{Czujnik tlenu}>&
 ```
 Wartości otrzymywane z czujników (```{Czujnik PH}```, ```{Czujnik temperatury}```,oraz ```{Czujnik tlenu}```)są podawane z dokładnością do **trzeciego** miejsca po przecinku.
 
 `Przykład: `
 ```sh
-<DF?PH:1.736,TEMP,21.997,GS:1.210>&
+$<DF?PH:1.736,TEMP,21.997,GS:1.210>&
 ```
 
 
 ### Ramka pomp
 Opis ramki szybkiej `DP`
 ```sh
-$<DM?1:{Pompa 1},2:{Pompa 2},3:{Pompa 3},4:{Pompa 4}>&
+$<DP?1:{Pompa 1},2:{Pompa 2},3:{Pompa 3},4:{Pompa 4}>&
 ```
 - mininlana wartość - **0**
 - maksymalna wartość - **255**
@@ -71,7 +71,7 @@ Wartości otrzymywane z pomp (```{Pompa 1}```,```{Pompa 2}```,```{Pompa 3}```,or
 
 `Przykład: `
 ```sh
-$<DM?1:25,2:137,3:151,4:92>&
+$<DP?1:25,2:137,3:151,4:92>&
 ```
 
 # Komendy
