@@ -18,9 +18,9 @@ Ten dokument zawiera instrukcje dzięki którym możliwe jest uruchomienie progr
 #### Ramka szybka 
 
 ```sh
-DEBUG_FAST,{on/off}
+DEBUG_FAST,{on/off}  // {on/off} - 0 (wyłączone) lub 1 (włączone)
 ```
-**on/off** - **0**(wyłączone) lub **1**(włączone)
+- **on/off** - **0**(wyłączone) lub **1**(włączone)
 
 Przykład:
 ```sh
