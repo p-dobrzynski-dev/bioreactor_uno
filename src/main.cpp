@@ -25,6 +25,8 @@ enum ERROR
   INVALID_PARAMETER = 3,
 };
 
+const String CommandPrefix = "CMD";
+
 const String DebugFastCMD = "DEBUG_FAST";
 const String DebugPumpCMD = "DEBUG_PUMP";
 
@@ -194,53 +196,56 @@ void TaskSerialReadWriteTerminal(void *pvParameters)
         }
         else
         {
-          // COMMAND: DEBUG_FAST and DEBUG_PUMP
-          if (receivedArray[0] == DebugFastCMD || receivedArray[0] == DebugPumpCMD)
+          if (receivedArray[0] == CommandPrefix)
           {
-            if (receivedArray[2] != NULL || receivedArray[3] != NULL)
+            // COMMAND: DEBUG_FAST and DEBUG_PUMP
+            if (receivedArray[1] == DebugFastCMD || receivedArray[1] == DebugPumpCMD)
             {
-              // INVALID_PARAMETER
-              SendInvalidParameters(baseReceivedMessage);
-            }
-            else
-            {
-              if (receivedArray[1] == "0")
-              {
-                if (receivedArray[0] == DebugFastCMD)
-                {
-                  isFastDebug = false;
-                }
-                else
-                {
-                  isPumpDebug = false;
-                }
-                // OK
-                SendOk(baseReceivedMessage);
-              }
-              else if (receivedArray[1] == "1")
-              {
-                if (receivedArray[0] == DebugFastCMD)
-                {
-                  isFastDebug = true;
-                }
-                else
-                {
-                  isPumpDebug = true;
-                }
-                // OK
-                SendOk(baseReceivedMessage);
-              }
-              else
+              if (receivedArray[3] != NULL || receivedArray[4] != NULL)
               {
                 // INVALID_PARAMETER
                 SendInvalidParameters(baseReceivedMessage);
               }
+              else
+              {
+                if (receivedArray[2] == "0")
+                {
+                  if (receivedArray[1] == DebugFastCMD)
+                  {
+                    isFastDebug = false;
+                  }
+                  else
+                  {
+                    isPumpDebug = false;
+                  }
+                  // OK
+                  SendOk(baseReceivedMessage);
+                }
+                else if (receivedArray[2] == "1")
+                {
+                  if (receivedArray[1] == DebugFastCMD)
+                  {
+                    isFastDebug = true;
+                  }
+                  else
+                  {
+                    isPumpDebug = true;
+                  }
+                  // OK
+                  SendOk(baseReceivedMessage);
+                }
+                else
+                {
+                  // INVALID_PARAMETER
+                  SendInvalidParameters(baseReceivedMessage);
+                }
+              }
             }
-          }
-          else
-          {
-            // INVALID_COMMAND
-            SendInvalidCommand(baseReceivedMessage);
+            else
+            {
+              // INVALID_COMMAND
+              SendInvalidCommand(baseReceivedMessage);
+            }
           }
         }
       }
@@ -265,7 +270,7 @@ void TaskSerialReadWriteTerminal(void *pvParameters)
       if (isPumpDebug)
       {
         Serial.print("$<");
-        Serial.print("DM?");
+        Serial.print("DP?");
         Serial.print("1:");
         Serial.print(PUMP_1_Value); // PUMP 1
         Serial.print(",");
