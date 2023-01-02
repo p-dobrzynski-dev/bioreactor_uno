@@ -102,7 +102,7 @@ CMD,DEBUG_FAST,{on/off}
 
 `Przykład:`
 ```sh
-CND,DEBUG_FAST,1 // Włączenie ramki szybkiej
+CMD,DEBUG_FAST,1 // Włączenie ramki szybkiej
 ```
 ***
 ### DEBUG_PUMP
@@ -124,17 +124,19 @@ CMD,DEBUG_PUMP,0 // Wyłączenie ramki pomp
 ### SET_PUMP
 **Komenda ustawia prędkość silnika pomp** 
 
+Pompy mogą pracować w dwie strony, o kierunku ruchu decyduje wartość pompy może być dodatnia lub ujemna 
+
 ```sh
 CMD,SET_PUMP,{n},{x}
 ```
 | Argument | Zakres wartości | Opis argumentów 
 | -------- | --------------- | ----------- |
 | {n}   | **1 - 4** | pompy są ponumerowane od **1** do **4**
-| {x}   | **0 - 255** | **0** (wyłączone), **255** (maksymalna wartość)
+| {x}   | **-255 - 255** | **-255** (minimalna wartość), **0** (wyłączone), **255** (maksymalna wartość)
 
 `Przykład:`
 ```sh
-CMD,SET_PUMP,2,170 // Ustawienie pompy nr 2 na wartość 170
+CMD,SET_PUMP,2,-170 // Ustawienie pompy nr 2 na wartość -170
 ```
 ```sh
 CMD,SET_PUMP,1,0 // Ustawienie pompy nr 2 na wartość 0 (wyłączenie)
