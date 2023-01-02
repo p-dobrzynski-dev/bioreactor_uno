@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <Arduino_FreeRTOS.h>
 #include <semphr.h> // add the FreeRTOS functions for Semaphores (or Flags).
+#include <Servo.h>
 
 // Reading variables
 float PHValue;
@@ -8,10 +9,35 @@ float TemperatureValue;
 float GravValue;
 
 // Pumps
-int PUMP_1_Value;
-int PUMP_2_Value;
-int PUMP_3_Value;
-int PUMP_4_Value;
+int pumpsValues[4] = {
+    0, // PUMP_0
+    0, // PUMP_1
+    0, // PUMP_2
+    0  // PUMP_3
+};
+
+// Create servo pumps objects
+Servo DfRobotPump;
+
+int DFRobotPumpPin = 3; // DFRobotPump Output (PUMP_0)
+
+int pumpOutputs[3] = {
+    5, // PUMP_1 Pin Output
+    6, // PUMP_2 Pin Output
+    9  // PUMP_3 Pin Output
+};
+
+int IN_13_PumpOutputs[3] = {
+    7,  // PUMP_1 IN1
+    10, // PUMP_2 IN3
+    12  // PUMP_3 IN1
+};
+
+int IN_24_PumpOutputs[3] = {
+    8,  // PUMP_1 IN2
+    11, // PUMP_2 IN4
+    13  // PUMP_3 IN2
+};
 
 // Debug flags
 bool isFastDebug = false;
@@ -29,6 +55,8 @@ const String CommandPrefix = "CMD";
 
 const String DebugFastCMD = "DEBUG_FAST";
 const String DebugPumpCMD = "DEBUG_PUMP";
+
+const String SetPumpCMD = "SET_PUMP";
 
 ERROR errorCode; // Error base object
 
@@ -55,6 +83,15 @@ void setup()
   Serial.println("CONNECTED");
 
   errorCode = OK;
+
+  // Setting dfrobot pump
+  DfRobotPump.attach(DFRobotPumpPin);
+
+  // H bridge pumps
+  for (int i = 1; i < sizeof(pumpOutputs); i++)
+  {
+    pinMode(pumpOutputs[i], OUTPUT);
+  }
 
   // Semaphores are useful to stop a Task proceeding, where it should be paused to wait,
   // because it is sharing a resource, such as the Serial port.
@@ -110,6 +147,49 @@ void PrintInfo()
   Serial.println("/*---------------------- INFO ----------------------*/");
   Serial.println();
   Serial.println("DEBUG ...");
+}
+
+bool IsStringInt(String stringToCheck)
+{
+  for (byte i = 0; i < stringToCheck.length(); i++)
+  {
+    if (isDigit(stringToCheck.charAt(i)))
+      return true;
+  }
+  return false;
+}
+
+void setPumpMotorSpeed(int index, int value)
+{
+  // Setting data for debug pump frame
+  pumpsValues[index] = value;
+
+
+  // Setting motor speed
+  if (index == 0)
+  {
+    int pumpSpeed = map(value, -255, 255, 0, 180);
+
+    DfRobotPump.write(pumpSpeed);
+  }
+  else
+  {
+    if (value >= 0)
+    {
+      digitalWrite(IN_13_PumpOutputs[index-1], HIGH);
+      digitalWrite(IN_24_PumpOutputs[index-1], LOW);
+    }
+    else
+    {
+      digitalWrite(IN_13_PumpOutputs[index-1], LOW);
+      digitalWrite(IN_24_PumpOutputs[index-1], HIGH);
+    }
+    analogWrite(pumpOutputs[index-1], abs(value));
+  }
+
+  Serial.print(index);
+  Serial.print(" ");
+  Serial.println(value);
 }
 
 #pragma endregion
@@ -201,7 +281,7 @@ void TaskSerialReadWriteTerminal(void *pvParameters)
             // COMMAND: DEBUG_FAST and DEBUG_PUMP
             if (receivedArray[1] == DebugFastCMD || receivedArray[1] == DebugPumpCMD)
             {
-              if (receivedArray[3] != NULL || receivedArray[4] != NULL)
+              if (receivedArray[3] != NULL)
               {
                 // INVALID_PARAMETER
                 SendInvalidParameters(baseReceivedMessage);
@@ -241,6 +321,77 @@ void TaskSerialReadWriteTerminal(void *pvParameters)
                 }
               }
             }
+            else if (receivedArray[1] == SetPumpCMD)
+            {
+              if (IsStringInt(receivedArray[2]))
+              {
+                int pumpIndex = receivedArray[2].toInt();
+
+                // Validating pump index
+                if (0 <= pumpIndex <= 3)
+                {
+                  if (IsStringInt(receivedArray[3]))
+                  {
+                    int pumpValue = receivedArray[3].toInt();
+
+                    if (0 <= pumpValue <= 255)
+                    {
+                      setPumpMotorSpeed(pumpIndex, pumpValue);
+
+                      // OK
+                      SendOk(baseReceivedMessage);
+                    }
+                    else
+                    {
+                      // INVALID_PARAMETER
+                      SendInvalidParameters(baseReceivedMessage);
+                    }
+                  }
+                  else
+                  {
+                    // INVALID_PARAMETER
+                    SendInvalidParameters(baseReceivedMessage);
+                  }
+                }
+                else
+                {
+                  // INVALID_PARAMETER
+                  SendInvalidParameters(baseReceivedMessage);
+                }
+              }
+
+              // if (receivedArray[2] == "0")
+              // {
+              //   if (receivedArray[1] == DebugFastCMD)
+              //   {
+              //     isFastDebug = false;
+              //   }
+              //   else
+              //   {
+              //     isPumpDebug = false;
+              //   }
+              //   // OK
+              //   SendOk(baseReceivedMessage);
+              // }
+              // else if (receivedArray[2] == "1")
+              // {
+              //   if (receivedArray[1] == DebugFastCMD)
+              //   {
+              //     isFastDebug = true;
+              //   }
+              //   else
+              //   {
+              //     isPumpDebug = true;
+              //   }
+              //   // OK
+              //   SendOk(baseReceivedMessage);
+              // }
+              else
+              {
+                // INVALID_PARAMETER
+                SendInvalidParameters(baseReceivedMessage);
+              }
+            }
             else
             {
               // INVALID_COMMAND
@@ -271,17 +422,17 @@ void TaskSerialReadWriteTerminal(void *pvParameters)
       {
         Serial.print("$<");
         Serial.print("DP?");
+        Serial.print("0:");
+        Serial.print(pumpsValues[0]); // PUMP 0
+        Serial.print(",");
         Serial.print("1:");
-        Serial.print(PUMP_1_Value); // PUMP 1
+        Serial.print(pumpsValues[1]); // PUMP 1
         Serial.print(",");
         Serial.print("2:");
-        Serial.print(PUMP_2_Value); // PUMP 2
+        Serial.print(pumpsValues[2]); // PUMP 2
         Serial.print(",");
         Serial.print("3:");
-        Serial.print(PUMP_3_Value); // PUMP 3
-        Serial.print(",");
-        Serial.print("4:");
-        Serial.print(PUMP_4_Value); // PUMP 4
+        Serial.print(pumpsValues[3]); // PUMP 3
         Serial.println(">&");
       }
 
