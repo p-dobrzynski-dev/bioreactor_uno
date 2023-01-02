@@ -76,8 +76,20 @@ $<DP?1:25,2:137,3:151,4:92>&
 
 # Komendy
 
-❗ Wszystkie komendy wysyłane musi poprzedzać dodanie  `CMD`.
+### HELP
+**Komenda pomocy** - zwaraca informacje o wszystkich dotępnych komendach przydatna do pobranie informacji w przypadku braku dostepu do dokumentacji
 
+`Przykład:`
+```sh
+HELP
+```
+`Odpowiedź: `
+```sh
+blabla
+```
+***
+❗❗❗ Wszystkie wysyłane komendy funckyjne  musi poprzedzać dodanie  `CMD`.
+***
 ### DEBUG_FAST
 **Komenda ramki szybkiej** - wyłącza oraz włącza wysyłanie danych szybkich **domyślnie włączona** 
 
@@ -90,7 +102,7 @@ CMD,DEBUG_FAST,{on/off}
 
 `Przykład:`
 ```sh
-CND,DEBUG_FAST,1 // Włączenie ramki szybkiej
+CMD,DEBUG_FAST,1 // Włączenie ramki szybkiej
 ```
 ***
 ### DEBUG_PUMP
@@ -106,6 +118,31 @@ CMD,DEBUG_PUMP,{on/off}
 `Przykład:`
 ```sh
 CMD,DEBUG_PUMP,0 // Wyłączenie ramki pomp
+```
+***
+
+### SET_PUMP
+**Komenda ustawia prędkość silnika pomp** 
+
+Pompy mogą pracować w dwie strony, o kierunku ruchu decyduje wartość pompy może być dodatnia lub ujemna 
+
+```sh
+CMD,SET_PUMP,{n},{x}
+```
+| Argument | Zakres wartości | Opis argumentów 
+| -------- | --------------- | ----------- |
+| {n}   | **1 - 4** | pompy są ponumerowane od **1** do **4**
+| {x}   | **-255 - 255** | **-255** (minimalna wartość), **0** (wyłączone), **255** (maksymalna wartość)
+
+`Przykład:`
+```sh
+CMD,SET_PUMP,2,-170 // Ustawienie pompy nr 2 na wartość -170
+```
+```sh
+CMD,SET_PUMP,1,0 // Ustawienie pompy nr 2 na wartość 0 (wyłączenie)
+```
+```sh
+CMD,SET_PUMP,4,255 // Ustawienie pompy nr 2 na wartość 255 (maksymalna wartość)
 ```
 ***
 
