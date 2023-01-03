@@ -131,7 +131,7 @@ CMD,SET_PUMP,{n},{x}
 ```
 | Argument | Zakres wartości | Opis argumentów 
 | -------- | --------------- | ----------- |
-| {n}   | **0 - 3** | pompy są ponumerowane od **0** do **1**
+| {n}   | **0 - 3** | pompy są ponumerowane od **0** do **3**
 | {x}   | **-255 - 255** | **-255** (minimalna wartość), **0** (wyłączone), **255** (maksymalna wartość)
 
 `Przykład:`
