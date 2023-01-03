@@ -131,7 +131,7 @@ CMD,SET_PUMP,{n},{x}
 ```
 | Argument | Zakres wartości | Opis argumentów 
 | -------- | --------------- | ----------- |
-| {n}   | **1 - 4** | pompy są ponumerowane od **1** do **4**
+| {n}   | **0 - 3** | pompy są ponumerowane od **0** do **3**
 | {x}   | **-255 - 255** | **-255** (minimalna wartość), **0** (wyłączone), **255** (maksymalna wartość)
 
 `Przykład:`
@@ -139,10 +139,10 @@ CMD,SET_PUMP,{n},{x}
 CMD,SET_PUMP,2,-170 // Ustawienie pompy nr 2 na wartość -170
 ```
 ```sh
-CMD,SET_PUMP,1,0 // Ustawienie pompy nr 2 na wartość 0 (wyłączenie)
+CMD,SET_PUMP,1,0 // Ustawienie pompy nr 1 na wartość 0 (wyłączenie)
 ```
 ```sh
-CMD,SET_PUMP,4,255 // Ustawienie pompy nr 2 na wartość 255 (maksymalna wartość)
+CMD,SET_PUMP,3,255 // Ustawienie pompy nr 3 na wartość 255 (maksymalna wartość)
 ```
 ***
 
