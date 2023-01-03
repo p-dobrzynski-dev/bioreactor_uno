@@ -2,41 +2,22 @@
 #include <Arduino_FreeRTOS.h>
 #include <semphr.h> // add the FreeRTOS functions for Semaphores (or Flags).
 #include <Servo.h>
+#include <pump.h>
 
 // Reading variables
 float PHValue;
 float TemperatureValue;
 float GravValue;
 
-// Pumps
-int pumpsValues[4] = {
-    0, // PUMP_0
-    0, // PUMP_1
-    0, // PUMP_2
-    0  // PUMP_3
-};
-
 // Create servo pumps objects
 Servo DfRobotPump;
 
 int DFRobotPumpPin = 3; // DFRobotPump Output (PUMP_0)
 
-int pumpOutputs[3] = {
-    5, // PUMP_1 Pin Output
-    6, // PUMP_2 Pin Output
-    9  // PUMP_3 Pin Output
-};
-
-int IN_13_PumpOutputs[3] = {
-    7,  // PUMP_1 IN1
-    10, // PUMP_2 IN3
-    12  // PUMP_3 IN1
-};
-
-int IN_24_PumpOutputs[3] = {
-    8,  // PUMP_1 IN2
-    11, // PUMP_2 IN4
-    13  // PUMP_3 IN2
+Pump pumpsArray[3] = {
+    Pump(5, 7, 8),   // PUMP_1
+    Pump(6, 10, 11), // PUMP_2
+    Pump(8, 12, 13)  // PUMP_3
 };
 
 // Debug flags
@@ -86,12 +67,6 @@ void setup()
 
   // Setting dfrobot pump
   DfRobotPump.attach(DFRobotPumpPin);
-
-  // H bridge pumps
-  for (int i = 1; i < sizeof(pumpOutputs); i++)
-  {
-    pinMode(pumpOutputs[i], OUTPUT);
-  }
 
   // Semaphores are useful to stop a Task proceeding, where it should be paused to wait,
   // because it is sharing a resource, such as the Serial port.
@@ -162,34 +137,17 @@ bool IsStringInt(String stringToCheck)
 void setPumpMotorSpeed(int index, int value)
 {
   // Setting data for debug pump frame
-  pumpsValues[index] = value;
-
 
   // Setting motor speed
   if (index == 0)
   {
     int pumpSpeed = map(value, -255, 255, 0, 180);
-
     DfRobotPump.write(pumpSpeed);
   }
   else
   {
-    if (value >= 0)
-    {
-      digitalWrite(IN_13_PumpOutputs[index-1], HIGH);
-      digitalWrite(IN_24_PumpOutputs[index-1], LOW);
-    }
-    else
-    {
-      digitalWrite(IN_13_PumpOutputs[index-1], LOW);
-      digitalWrite(IN_24_PumpOutputs[index-1], HIGH);
-    }
-    analogWrite(pumpOutputs[index-1], abs(value));
+    pumpsArray[index-1].setPumpSpeed(value);
   }
-
-  Serial.print(index);
-  Serial.print(" ");
-  Serial.println(value);
 }
 
 #pragma endregion
@@ -334,7 +292,7 @@ void TaskSerialReadWriteTerminal(void *pvParameters)
                   {
                     int pumpValue = receivedArray[3].toInt();
 
-                    if (0 <= pumpValue <= 255)
+                    if (-255 <= pumpValue <= 255)
                     {
                       setPumpMotorSpeed(pumpIndex, pumpValue);
 
@@ -359,33 +317,6 @@ void TaskSerialReadWriteTerminal(void *pvParameters)
                   SendInvalidParameters(baseReceivedMessage);
                 }
               }
-
-              // if (receivedArray[2] == "0")
-              // {
-              //   if (receivedArray[1] == DebugFastCMD)
-              //   {
-              //     isFastDebug = false;
-              //   }
-              //   else
-              //   {
-              //     isPumpDebug = false;
-              //   }
-              //   // OK
-              //   SendOk(baseReceivedMessage);
-              // }
-              // else if (receivedArray[2] == "1")
-              // {
-              //   if (receivedArray[1] == DebugFastCMD)
-              //   {
-              //     isFastDebug = true;
-              //   }
-              //   else
-              //   {
-              //     isPumpDebug = true;
-              //   }
-              //   // OK
-              //   SendOk(baseReceivedMessage);
-              // }
               else
               {
                 // INVALID_PARAMETER
@@ -423,16 +354,17 @@ void TaskSerialReadWriteTerminal(void *pvParameters)
         Serial.print("$<");
         Serial.print("DP?");
         Serial.print("0:");
-        Serial.print(pumpsValues[0]); // PUMP 0
+        int mappedValue = map(DfRobotPump.read(), 0,180, -255,255);
+        Serial.print(mappedValue); // PUMP 0
         Serial.print(",");
         Serial.print("1:");
-        Serial.print(pumpsValues[1]); // PUMP 1
+        Serial.print(pumpsArray[0].GetCurrentSpeed()); // PUMP 1
         Serial.print(",");
         Serial.print("2:");
-        Serial.print(pumpsValues[2]); // PUMP 2
+        Serial.print(pumpsArray[1].GetCurrentSpeed()); // PUMP 2
         Serial.print(",");
         Serial.print("3:");
-        Serial.print(pumpsValues[3]); // PUMP 3
+        Serial.print(pumpsArray[2].GetCurrentSpeed()); // PUMP 3
         Serial.println(">&");
       }
 
