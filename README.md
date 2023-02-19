@@ -76,12 +76,12 @@ $<DP?1:25,2:137,3:151,4:92>&
 
 # Komendy
 
-### HELP
+### ?
 **Komenda pomocy** - zwaraca informacje o wszystkich dotępnych komendach przydatna do pobranie informacji w przypadku braku dostepu do dokumentacji
 
 `Przykład:`
 ```sh
-HELP
+?
 ```
 `Odpowiedź: `
 ```sh
