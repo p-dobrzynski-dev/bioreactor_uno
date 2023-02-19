@@ -85,7 +85,7 @@ $<DP?1:25,2:137,3:151,4:92>&
 ```
 `Odpowiedź: `
 ```sh
-blabla
+Lista dostepnych komend
 ```
 ***
 ❗❗❗ Wszystkie wysyłane komendy funckyjne  musi poprzedzać dodanie  `CMD`.
