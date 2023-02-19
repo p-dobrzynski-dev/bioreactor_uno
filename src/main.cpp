@@ -14,10 +14,29 @@ Servo DfRobotPump;
 
 int DFRobotPumpPin = 3; // DFRobotPump Output (PUMP_0)
 
+// which analog pin to connect
+#define THERMISTORPIN A1
+
+// Analog read samples
+#define NUMSAMPLES 10
+
+// Thermistor settings
+// resistance at 25 degrees C
+#define THERMISTORNOMINAL 10000
+// temp. for nominal resistance (almost always 25 C)
+#define TEMPERATURENOMINAL 25
+// how many samples to take and average, more takes longer
+// but is more 'smooth'
+#define NUMSAMPLES 5
+// The beta coefficient of the thermistor (usually 3000-4000)
+#define BCOEFFICIENT 3950
+// the value of the 'other' resistor
+#define SERIESRESISTOR 10000
+
 Pump pumpsArray[3] = {
     Pump(5, 7, 8),   // PUMP_1
-    Pump(6, 10, 11), // PUMP_2
-    Pump(8, 12, 13)  // PUMP_3
+    Pump(6, 9, 10),  // PUMP_2
+    Pump(11, 12, 13) // PUMP_3
 };
 
 // Debug flags
@@ -50,6 +69,8 @@ SemaphoreHandle_t xSerialSemaphore;
 void TaskAnalogPHRead(void *pvParameters);
 void TaskSerialReadWriteTerminal(void *pvParameters);
 
+char ptrTaskList[250];
+
 // the setup function runs once when you press reset or power the board
 void setup()
 {
@@ -60,6 +81,8 @@ void setup()
   {
     ; // wait for serial port to connect. Needed for native USB, on LEONARDO, MICRO, YUN, and other 32u4 based boards.
   }
+
+  analogReference(EXTERNAL);
 
   Serial.println("CONNECTED");
 
@@ -92,7 +115,7 @@ void setup()
   xTaskCreate(
       TaskSerialReadWriteTerminal, "TaskSerialReadWriteTerminal" // A name just for humans
       ,
-      256 // Stack size
+      200 // Stack size
       ,
       NULL // Parameters for the task
       ,
@@ -101,7 +124,11 @@ void setup()
       NULL); // Task Handle
 
   // Now the Task scheduler, which takes over control of scheduling individual Tasks, is automatically started.
+  vTaskStartScheduler(); // The scheduler is started in initVariant() found in variantHooks.c
+  
+
 }
+
 
 void loop()
 {
@@ -146,7 +173,7 @@ void setPumpMotorSpeed(int index, int value)
   }
   else
   {
-    pumpsArray[index-1].setPumpSpeed(value);
+    pumpsArray[index - 1].setPumpSpeed(value);
   }
 }
 
@@ -354,7 +381,7 @@ void TaskSerialReadWriteTerminal(void *pvParameters)
         Serial.print("$<");
         Serial.print("DP?");
         Serial.print("0:");
-        int mappedValue = map(DfRobotPump.read(), 0,180, -255,255);
+        int mappedValue = map(DfRobotPump.read(), 0, 180, -255, 255);
         Serial.print(mappedValue); // PUMP 0
         Serial.print(",");
         Serial.print("1:");
@@ -374,6 +401,71 @@ void TaskSerialReadWriteTerminal(void *pvParameters)
   }
 }
 
+double avergearray(int *arr, int number)
+{
+  int i;
+  int max, min;
+  double avg;
+  long amount = 0;
+  if (number <= 0)
+  {
+    return 0;
+  }
+  if (number < 5)
+  { // less than 5, calculated directly statistics
+    for (i = 0; i < number; i++)
+    {
+      amount += arr[i];
+    }
+    avg = amount / number;
+    return avg;
+  }
+  else
+  {
+    if (arr[0] < arr[1])
+    {
+      min = arr[0];
+      max = arr[1];
+    }
+    else
+    {
+      min = arr[1];
+      max = arr[0];
+    }
+    for (i = 2; i < number; i++)
+    {
+      if (arr[i] < min)
+      {
+        amount += min; // arr<min
+        min = arr[i];
+      }
+      else
+      {
+        if (arr[i] > max)
+        {
+          amount += max; // arr>max
+          max = arr[i];
+        }
+        else
+        {
+          amount += arr[i]; // min<=arr<=max
+        }
+      } // if
+    }   // for
+    avg = (double)amount / (number - 2);
+  } // if
+  return avg;
+}
+
+
+#define SensorPin A0            //pH meter Analog output to Arduino Analog Input 0
+#define Offset 0.00            //deviation compensate
+#define samplingInterval 20
+#define printInterval 800
+#define ArrayLenth  40    //times of collection
+int pHArray[ArrayLenth];   //Store the average value of the sensor feedback
+int pHArrayIndex=0;
+
 void TaskAnalogPHRead(void *pvParameters __attribute__((unused))) // This is a Task.
 {
   int buf[10], temp;
@@ -381,44 +473,101 @@ void TaskAnalogPHRead(void *pvParameters __attribute__((unused))) // This is a T
 
   unsigned short initialCounter;
 
+  int samples[NUMSAMPLES];
+
   for (;;)
   {
+    // Getting PH Values
+
+    static unsigned long samplingTime = millis();
+    static unsigned long printTime = millis();
+    static float pHValue, voltage;
+    if (millis() - samplingTime > samplingInterval)
+    {
+      pHArray[pHArrayIndex++] = analogRead(SensorPin);
+      if (pHArrayIndex == ArrayLenth)
+        pHArrayIndex = 0;
+      voltage = avergearray(pHArray, ArrayLenth) * 5.0 / 1024;
+      pHValue = 3.5 * voltage + Offset;
+      samplingTime = millis();
+    }
+    if (millis() - printTime > printInterval) // Every 800 milliseconds, print a numerical, convert the state of the LED indicator
+    {
+      PHValue = pHValue;
+      GravValue = voltage;
+    }
+
     // read the input on analog pin 0:
-    int sensorValue = analogRead(A0);
+    // int PHsensorValue = analogRead(A0);
 
-    buf[0] = sensorValue;
+    // buf[0] = PHsensorValue;
 
-    initialCounter++;
+    // initialCounter++;
 
-    // Getting at least sample number of readings
-    if (initialCounter < sizeof(buf))
+    // // Getting at least sample number of readings
+    // if (initialCounter < sizeof(buf))
+    // {
+    //   continue;
+    // }
+
+    // int beginning = buf[0];
+
+    // memmove(buf, &buf[1], sizeof(buf) - sizeof(int));
+
+    // buf[9] = beginning;
+
+    // for (int i = 0; i < 9; i++) // sort the analog from small to large
+    // {
+    //   for (int j = i + 1; j < 10; j++)
+    //   {
+    //     if (buf[i] > buf[j])
+    //     {
+    //       temp = buf[i];
+    //       buf[i] = buf[j];
+    //       buf[j] = temp;
+    //     }
+    //   }
+    // }
+
+    // avgValue = 0;
+    // for (int i = 2; i < 8; i++) // take the average value of 6 center sample
+    //   avgValue += buf[i];
+    // float phValue = (float)avgValue * 5.0 / 1024 / 6; // convert the analog into millivolt
+    // PHValue = 3.5 * phValue;                          // convert the millivolt into pH value
+
+    // Getting temperature readings
+    uint8_t i;
+    float average;
+
+    // take N samples in a row, with a slight delay
+    for (i = 0; i < NUMSAMPLES; i++)
     {
-      continue;
+      samples[i] = analogRead(THERMISTORPIN);
+      vTaskDelay(1);
     }
 
-    int beginning = buf[0];
-
-    memmove(buf, &buf[1], sizeof(buf) - sizeof(int));
-
-    buf[9] = beginning;
-
-    for (int i = 0; i < 9; i++) // sort the analog from small to large
+    // average all the samples out
+    average = 0;
+    for (i = 0; i < NUMSAMPLES; i++)
     {
-      for (int j = i + 1; j < 10; j++)
-      {
-        if (buf[i] > buf[j])
-        {
-          temp = buf[i];
-          buf[i] = buf[j];
-          buf[j] = temp;
-        }
-      }
+      average += samples[i];
     }
+    average /= NUMSAMPLES;
 
-    avgValue = 0;
-    for (int i = 2; i < 8; i++) // take the average value of 6 center sample
-      avgValue += buf[i];
-    float phValue = (float)avgValue * 5.0 / 1024 / 6; // convert the analog into millivolt
-    PHValue = 3.5 * phValue;                          // convert the millivolt into pH value
+    // convert the value to resistance
+    average = 1023 / average - 1;
+    average = SERIESRESISTOR / average;
+
+    float steinhart;
+    steinhart = average / THERMISTORNOMINAL;          // (R/Ro)
+    steinhart = log(steinhart);                       // ln(R/Ro)
+    steinhart /= BCOEFFICIENT;                        // 1/B * ln(R/Ro)
+    steinhart += 1.0 / (TEMPERATURENOMINAL + 273.15); // + (1/To)
+    steinhart = 1.0 / steinhart;                      // Invert
+    steinhart -= 273.15;                              // convert absolute temp to C
+
+    TemperatureValue = steinhart;
+
+    vTaskDelay(1);
   }
 }
