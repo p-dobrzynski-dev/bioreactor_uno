@@ -115,7 +115,7 @@ void setup()
   xTaskCreate(
       TaskSerialReadWriteTerminal, "TaskSerialReadWriteTerminal" // A name just for humans
       ,
-      200 // Stack size
+      220 // Stack size
       ,
       NULL // Parameters for the task
       ,
@@ -144,13 +144,12 @@ void loop()
 void PrintInfo()
 {
   Serial.println();
-  Serial.println("/*--------------------------------------------------*/");
-  Serial.println("/*------------------ BIO REACTOR -------------------*/");
   Serial.println("/*---------------------- INFO ----------------------*/");
   Serial.println();
-  Serial.println("? - wyświetlenie dostępnych komend");
-  Serial.println("CMD,DEBUG_FAST,{on/off} - wyłącza oraz włącza wysyłanie danych szybkich domyślnie włączona, 0 (wyłączone) lub 1 (włączone)");
-  Serial.println("CMD,DEBUG_PUMP,{on/off} - wyłącza oraz włącza wysyłanie danych z pomp domyślnie włączona, 0 (wyłączone) lub 1 (włączone)");
+  Serial.println("?");
+  Serial.println("CMD,DEBUG_FAST,{on/off}");
+  Serial.println("CMD,DEBUG_PUMP,{on/off}");
+  Serial.println("CMD,SET_PUMP,{n},{x}");
 }
 
 bool IsStringInt(String stringToCheck)
@@ -399,7 +398,7 @@ void TaskSerialReadWriteTerminal(void *pvParameters)
 
       xSemaphoreGive(xSerialSemaphore); // Now free or "Give" the Serial Port for others.
     }
-    vTaskDelay(1); // one tick delay (15ms) in between reads for stability
+    vTaskDelay(10); // one tick delay (15ms) in between reads for stability
   }
 }
 
