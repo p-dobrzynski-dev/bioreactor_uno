@@ -148,7 +148,9 @@ void PrintInfo()
   Serial.println("/*------------------ BIO REACTOR -------------------*/");
   Serial.println("/*---------------------- INFO ----------------------*/");
   Serial.println();
-  Serial.println("DEBUG ...");
+  Serial.println("? - wyświetlenie dostępnych komend");
+  Serial.println("CMD,DEBUG_FAST,{on/off} - wyłącza oraz włącza wysyłanie danych szybkich domyślnie włączona, 0 (wyłączone) lub 1 (włączone)");
+  Serial.println("CMD,DEBUG_PUMP,{on/off} - wyłącza oraz włącza wysyłanie danych z pomp domyślnie włączona, 0 (wyłączone) lub 1 (włączone)");
 }
 
 bool IsStringInt(String stringToCheck)
@@ -458,7 +460,7 @@ double avergearray(int *arr, int number)
 }
 
 
-#define SensorPin A0            //pH meter Analog output to Arduino Analog Input 0
+#define PhSensorPin A0            //pH meter Analog output to Arduino Analog Input 0
 #define Offset 0.00            //deviation compensate
 #define samplingInterval 20
 #define printInterval 800
@@ -484,7 +486,7 @@ void TaskAnalogPHRead(void *pvParameters __attribute__((unused))) // This is a T
     static float pHValue, voltage;
     if (millis() - samplingTime > samplingInterval)
     {
-      pHArray[pHArrayIndex++] = analogRead(SensorPin);
+      pHArray[pHArrayIndex++] = analogRead(PhSensorPin);
       if (pHArrayIndex == ArrayLenth)
         pHArrayIndex = 0;
       voltage = avergearray(pHArray, ArrayLenth) * 5.0 / 1024;
@@ -496,44 +498,6 @@ void TaskAnalogPHRead(void *pvParameters __attribute__((unused))) // This is a T
       PHValue = pHValue;
       GravValue = voltage;
     }
-
-    // read the input on analog pin 0:
-    // int PHsensorValue = analogRead(A0);
-
-    // buf[0] = PHsensorValue;
-
-    // initialCounter++;
-
-    // // Getting at least sample number of readings
-    // if (initialCounter < sizeof(buf))
-    // {
-    //   continue;
-    // }
-
-    // int beginning = buf[0];
-
-    // memmove(buf, &buf[1], sizeof(buf) - sizeof(int));
-
-    // buf[9] = beginning;
-
-    // for (int i = 0; i < 9; i++) // sort the analog from small to large
-    // {
-    //   for (int j = i + 1; j < 10; j++)
-    //   {
-    //     if (buf[i] > buf[j])
-    //     {
-    //       temp = buf[i];
-    //       buf[i] = buf[j];
-    //       buf[j] = temp;
-    //     }
-    //   }
-    // }
-
-    // avgValue = 0;
-    // for (int i = 2; i < 8; i++) // take the average value of 6 center sample
-    //   avgValue += buf[i];
-    // float phValue = (float)avgValue * 5.0 / 1024 / 6; // convert the analog into millivolt
-    // PHValue = 3.5 * phValue;                          // convert the millivolt into pH value
 
     // Getting temperature readings
     uint8_t i;
