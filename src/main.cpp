@@ -1,6 +1,4 @@
 #include <Arduino.h>
-#include <Arduino_FreeRTOS.h>
-#include <semphr.h> // add the FreeRTOS functions for Semaphores (or Flags).
 #include <Servo.h>
 #include <pump.h>
 
@@ -40,7 +38,7 @@ Pump pumpsArray[3] = {
 };
 
 // Debug flags
-bool isFastDebug = false;
+bool isFastDebug = true;
 bool isPumpDebug = false;
 
 enum ERROR
@@ -60,17 +58,6 @@ const String SetPumpCMD = "SET_PUMP";
 
 ERROR errorCode; // Error base object
 
-// Declare a mutex Semaphore Handle which we will use to manage the Serial Port.
-// It will be used to ensure only one Task is accessing this resource at any time.
-SemaphoreHandle_t xSerialSemaphore;
-
-// define two Tasks for DigitalRead & AnalogRead
-// void TaskDigitalRead(void *pvParameters);
-void TaskAnalogPHRead(void *pvParameters);
-void TaskSerialReadWriteTerminal(void *pvParameters);
-
-char ptrTaskList[250];
-
 // the setup function runs once when you press reset or power the board
 void setup()
 {
@@ -82,57 +69,12 @@ void setup()
     ; // wait for serial port to connect. Needed for native USB, on LEONARDO, MICRO, YUN, and other 32u4 based boards.
   }
 
-  analogReference(EXTERNAL);
-
   Serial.println("CONNECTED");
 
   errorCode = OK;
 
   // Setting dfrobot pump
   DfRobotPump.attach(DFRobotPumpPin);
-
-  // Semaphores are useful to stop a Task proceeding, where it should be paused to wait,
-  // because it is sharing a resource, such as the Serial port.
-  // Semaphores should only be used whilst the scheduler is running, but we can set it up here.
-  if (xSerialSemaphore == NULL) // Check to confirm that the Serial Semaphore has not already been created.
-  {
-    xSerialSemaphore = xSemaphoreCreateMutex(); // Create a mutex semaphore we will use to manage the Serial Port
-    if ((xSerialSemaphore) != NULL)
-      xSemaphoreGive((xSerialSemaphore)); // Make the Serial Port available for use, by "Giving" the Semaphore.
-  }
-
-  xTaskCreate(
-      TaskAnalogPHRead, "TaskAnalogPHRead" // A name just for humans
-      ,
-      128 // Stack size
-      ,
-      NULL // Parameters for the task
-      ,
-      1 // Priority
-      ,
-      NULL); // Task Handle
-
-  xTaskCreate(
-      TaskSerialReadWriteTerminal, "TaskSerialReadWriteTerminal" // A name just for humans
-      ,
-      220 // Stack size
-      ,
-      NULL // Parameters for the task
-      ,
-      2 // Priority
-      ,
-      NULL); // Task Handle
-
-  // Now the Task scheduler, which takes over control of scheduling individual Tasks, is automatically started.
-  vTaskStartScheduler(); // The scheduler is started in initVariant() found in variantHooks.c
-  
-
-}
-
-
-void loop()
-{
-  // Empty. Things are done in Tasks.
 }
 
 /*--------------------------------------------------*/
@@ -208,200 +150,6 @@ void SendInvalidParameters(String message)
 
 #pragma endregion
 
-/*--------------------------------------------------*/
-/*---------------------- Tasks ---------------------*/
-/*--------------------------------------------------*/
-
-void TaskSerialReadWriteTerminal(void *pvParameters)
-{
-  (void)pvParameters;
-
-  for (;;) // A Task shall never return or exit.
-  {
-
-    if (xSemaphoreTake(xSerialSemaphore, (TickType_t)5) == pdTRUE)
-    {
-      // We were able to obtain or "Take" the semaphore and can now access the shared resource.
-      // We want to have the Serial Port for us alone, as it takes some time to print,
-      // so we don't want it getting stolen during the middle of a conversion.
-      // print out the value you read:
-
-      if (Serial.available() > 0)
-      {
-        String baseReceivedMessage = Serial.readStringUntil('\n'); // Reading line until endline mark
-
-        String receivedMessage = baseReceivedMessage;
-
-        String receivedArray[4];
-        int itemCount = 0;
-
-        // Sltting message to string array
-        while (receivedMessage.length() > 0)
-        {
-          int index = receivedMessage.indexOf(',');
-          if (index == -1) // No char found
-          {
-            receivedArray[itemCount++] = receivedMessage;
-            break;
-          }
-          else
-          {
-            receivedArray[itemCount++] = receivedMessage.substring(0, index);
-            receivedMessage = receivedMessage.substring(index + 1);
-          }
-        }
-
-        if (baseReceivedMessage == "?")
-        {
-          PrintInfo();
-        }
-        else if (receivedArray[0] == "" || receivedArray[0] == NULL || receivedArray[0] == baseReceivedMessage)
-        {
-          // BAD_SYNTAX
-          SendSyntaxError(baseReceivedMessage);
-        }
-        else
-        {
-          if (receivedArray[0] == CommandPrefix)
-          {
-            // COMMAND: DEBUG_FAST and DEBUG_PUMP
-            if (receivedArray[1] == DebugFastCMD || receivedArray[1] == DebugPumpCMD)
-            {
-              if (receivedArray[3] != NULL)
-              {
-                // INVALID_PARAMETER
-                SendInvalidParameters(baseReceivedMessage);
-              }
-              else
-              {
-                if (receivedArray[2] == "0")
-                {
-                  if (receivedArray[1] == DebugFastCMD)
-                  {
-                    isFastDebug = false;
-                  }
-                  else
-                  {
-                    isPumpDebug = false;
-                  }
-                  // OK
-                  SendOk(baseReceivedMessage);
-                }
-                else if (receivedArray[2] == "1")
-                {
-                  if (receivedArray[1] == DebugFastCMD)
-                  {
-                    isFastDebug = true;
-                  }
-                  else
-                  {
-                    isPumpDebug = true;
-                  }
-                  // OK
-                  SendOk(baseReceivedMessage);
-                }
-                else
-                {
-                  // INVALID_PARAMETER
-                  SendInvalidParameters(baseReceivedMessage);
-                }
-              }
-            }
-            else if (receivedArray[1] == SetPumpCMD)
-            {
-              if (IsStringInt(receivedArray[2]))
-              {
-                int pumpIndex = receivedArray[2].toInt();
-
-                // Validating pump index
-                if (0 <= pumpIndex <= 3)
-                {
-                  if (IsStringInt(receivedArray[3]))
-                  {
-                    int pumpValue = receivedArray[3].toInt();
-
-                    if (-255 <= pumpValue <= 255)
-                    {
-                      setPumpMotorSpeed(pumpIndex, pumpValue);
-
-                      // OK
-                      SendOk(baseReceivedMessage);
-                    }
-                    else
-                    {
-                      // INVALID_PARAMETER
-                      SendInvalidParameters(baseReceivedMessage);
-                    }
-                  }
-                  else
-                  {
-                    // INVALID_PARAMETER
-                    SendInvalidParameters(baseReceivedMessage);
-                  }
-                }
-                else
-                {
-                  // INVALID_PARAMETER
-                  SendInvalidParameters(baseReceivedMessage);
-                }
-              }
-              else
-              {
-                // INVALID_PARAMETER
-                SendInvalidParameters(baseReceivedMessage);
-              }
-            }
-            else
-            {
-              // INVALID_COMMAND
-              SendInvalidCommand(baseReceivedMessage);
-            }
-          }
-        }
-      }
-
-      // Enable/Disable DEBUG_FAST Mode
-      if (isFastDebug)
-      {
-        Serial.print("$<");
-        Serial.print("DF?");
-        Serial.print("PH:");
-        Serial.print(PHValue, 3); // PH sensor Value
-        Serial.print(",");
-        Serial.print("TEMP:");
-        Serial.print(TemperatureValue, 3); // Temperature sensor Value
-        Serial.print(",");
-        Serial.print("GS:");
-        Serial.print(GravValue, 3); // Gravity sensor value
-        Serial.println(">&");
-      }
-
-      // Enable/Disable DEBUG_FAST Mode
-      if (isPumpDebug)
-      {
-        Serial.print("$<");
-        Serial.print("DP?");
-        Serial.print("0:");
-        int mappedValue = map(DfRobotPump.read(), 0, 180, -255, 255);
-        Serial.print(mappedValue); // PUMP 0
-        Serial.print(",");
-        Serial.print("1:");
-        Serial.print(pumpsArray[0].GetCurrentSpeed()); // PUMP 1
-        Serial.print(",");
-        Serial.print("2:");
-        Serial.print(pumpsArray[1].GetCurrentSpeed()); // PUMP 2
-        Serial.print(",");
-        Serial.print("3:");
-        Serial.print(pumpsArray[2].GetCurrentSpeed()); // PUMP 3
-        Serial.println(">&");
-      }
-
-      xSemaphoreGive(xSerialSemaphore); // Now free or "Give" the Serial Port for others.
-    }
-    vTaskDelay(10); // one tick delay (15ms) in between reads for stability
-  }
-}
-
 double avergearray(int *arr, int number)
 {
   int i;
@@ -458,16 +206,15 @@ double avergearray(int *arr, int number)
   return avg;
 }
 
-
-#define PhSensorPin A0            //pH meter Analog output to Arduino Analog Input 0
-#define Offset 0.00            //deviation compensate
+#define PhSensorPin A0 // pH meter Analog output to Arduino Analog Input 0
+#define Offset 0.00    // deviation compensate
 #define samplingInterval 20
 #define printInterval 800
-#define ArrayLenth  40    //times of collection
-int pHArray[ArrayLenth];   //Store the average value of the sensor feedback
-int pHArrayIndex=0;
+#define ArrayLenth 40    // times of collection
+int pHArray[ArrayLenth]; // Store the average value of the sensor feedback
+int pHArrayIndex = 0;
 
-void TaskAnalogPHRead(void *pvParameters __attribute__((unused))) // This is a Task.
+void ReadValuesFromSensors()
 {
   int buf[10], temp;
   unsigned long int avgValue;
@@ -476,61 +223,238 @@ void TaskAnalogPHRead(void *pvParameters __attribute__((unused))) // This is a T
 
   int samples[NUMSAMPLES];
 
-  for (;;)
+  // Getting PH Values
+
+  static unsigned long samplingTime = millis();
+  static unsigned long printTime = millis();
+  static float pHValue, voltage;
+  if (millis() - samplingTime > samplingInterval)
   {
-    // Getting PH Values
-
-    static unsigned long samplingTime = millis();
-    static unsigned long printTime = millis();
-    static float pHValue, voltage;
-    if (millis() - samplingTime > samplingInterval)
-    {
-      pHArray[pHArrayIndex++] = analogRead(PhSensorPin);
-      if (pHArrayIndex == ArrayLenth)
-        pHArrayIndex = 0;
-      voltage = avergearray(pHArray, ArrayLenth) * 5.0 / 1024;
-      pHValue = 3.5 * voltage + Offset;
-      samplingTime = millis();
-    }
-    if (millis() - printTime > printInterval) // Every 800 milliseconds, print a numerical, convert the state of the LED indicator
-    {
-      PHValue = pHValue;
-      GravValue = voltage;
-    }
-
-    // Getting temperature readings
-    uint8_t i;
-    float average;
-
-    // take N samples in a row, with a slight delay
-    for (i = 0; i < NUMSAMPLES; i++)
-    {
-      samples[i] = analogRead(THERMISTORPIN);
-      vTaskDelay(1);
-    }
-
-    // average all the samples out
-    average = 0;
-    for (i = 0; i < NUMSAMPLES; i++)
-    {
-      average += samples[i];
-    }
-    average /= NUMSAMPLES;
-
-    // convert the value to resistance
-    average = 1023 / average - 1;
-    average = SERIESRESISTOR / average;
-
-    float steinhart;
-    steinhart = average / THERMISTORNOMINAL;          // (R/Ro)
-    steinhart = log(steinhart);                       // ln(R/Ro)
-    steinhart /= BCOEFFICIENT;                        // 1/B * ln(R/Ro)
-    steinhart += 1.0 / (TEMPERATURENOMINAL + 273.15); // + (1/To)
-    steinhart = 1.0 / steinhart;                      // Invert
-    steinhart -= 273.15;                              // convert absolute temp to C
-
-    TemperatureValue = steinhart;
-
-    vTaskDelay(1);
+    pHArray[pHArrayIndex++] = analogRead(PhSensorPin);
+    if (pHArrayIndex == ArrayLenth)
+      pHArrayIndex = 0;
+    voltage = avergearray(pHArray, ArrayLenth) * 5.0 / 1024;
+    pHValue = 3.5 * voltage + Offset;
+    samplingTime = millis();
   }
+  if (millis() - printTime > printInterval) // Every 800 milliseconds, print a numerical, convert the state of the LED indicator
+  {
+    PHValue = pHValue;
+    GravValue = voltage;
+  }
+
+  // Getting temperature readings
+  uint8_t i;
+  float average;
+
+  // take N samples in a row, with a slight delay
+  for (i = 0; i < NUMSAMPLES; i++)
+  {
+    samples[i] = analogRead(THERMISTORPIN);
+    delay(5);
+  }
+
+  // average all the samples out
+  average = 0;
+  for (i = 0; i < NUMSAMPLES; i++)
+  {
+    average += samples[i];
+  }
+  average /= NUMSAMPLES;
+
+  // convert the value to resistance
+  average = 1023 / average - 1;
+  average = SERIESRESISTOR / average;
+
+  float steinhart;
+  steinhart = average / THERMISTORNOMINAL;          // (R/Ro)
+  steinhart = log(steinhart);                       // ln(R/Ro)
+  steinhart /= BCOEFFICIENT;                        // 1/B * ln(R/Ro)
+  steinhart += 1.0 / (TEMPERATURENOMINAL + 273.15); // + (1/To)
+  steinhart = 1.0 / steinhart;                      // Invert
+  steinhart -= 273.15;                              // convert absolute temp to C
+
+  TemperatureValue = steinhart;
+
+  delay(5);
+}
+
+/*--------------------------------------------------*/
+/*---------------------- Main loop ---------------------*/
+/*--------------------------------------------------*/
+
+void loop()
+{
+  if (Serial.available() > 0)
+  {
+    String baseReceivedMessage = Serial.readStringUntil('\n'); // Reading line until endline mark
+
+    String receivedMessage = baseReceivedMessage;
+
+    String receivedArray[4];
+    int itemCount = 0;
+
+    // Sltting message to string array
+    while (receivedMessage.length() > 0)
+    {
+      int index = receivedMessage.indexOf(',');
+      if (index == -1) // No char found
+      {
+        receivedArray[itemCount++] = receivedMessage;
+        break;
+      }
+      else
+      {
+        receivedArray[itemCount++] = receivedMessage.substring(0, index);
+        receivedMessage = receivedMessage.substring(index + 1);
+      }
+    }
+
+    if (baseReceivedMessage == "?")
+    {
+      PrintInfo();
+    }
+    else if (receivedArray[0] == "" || receivedArray[0] == NULL || receivedArray[0] == baseReceivedMessage)
+    {
+      // BAD_SYNTAX
+      SendSyntaxError(baseReceivedMessage);
+    }
+    else
+    {
+      if (receivedArray[0] == CommandPrefix)
+      {
+        // COMMAND: DEBUG_FAST and DEBUG_PUMP
+        if (receivedArray[1] == DebugFastCMD || receivedArray[1] == DebugPumpCMD)
+        {
+          if (receivedArray[3] != NULL)
+          {
+            // INVALID_PARAMETER
+            SendInvalidParameters(baseReceivedMessage);
+          }
+          else
+          {
+            if (receivedArray[2] == "0")
+            {
+              if (receivedArray[1] == DebugFastCMD)
+              {
+                isFastDebug = false;
+              }
+              else
+              {
+                isPumpDebug = false;
+              }
+              // OK
+              SendOk(baseReceivedMessage);
+            }
+            else if (receivedArray[2] == "1")
+            {
+              if (receivedArray[1] == DebugFastCMD)
+              {
+                isFastDebug = true;
+              }
+              else
+              {
+                isPumpDebug = true;
+              }
+              // OK
+              SendOk(baseReceivedMessage);
+            }
+            else
+            {
+              // INVALID_PARAMETER
+              SendInvalidParameters(baseReceivedMessage);
+            }
+          }
+        }
+        else if (receivedArray[1] == SetPumpCMD)
+        {
+          if (IsStringInt(receivedArray[2]))
+          {
+            int pumpIndex = receivedArray[2].toInt();
+
+            // Validating pump index
+            if (0 <= pumpIndex <= 3)
+            {
+              if (IsStringInt(receivedArray[3]))
+              {
+                int pumpValue = receivedArray[3].toInt();
+
+                if (-255 <= pumpValue <= 255)
+                {
+                  setPumpMotorSpeed(pumpIndex, pumpValue);
+
+                  // OK
+                  SendOk(baseReceivedMessage);
+                }
+                else
+                {
+                  // INVALID_PARAMETER
+                  SendInvalidParameters(baseReceivedMessage);
+                }
+              }
+              else
+              {
+                // INVALID_PARAMETER
+                SendInvalidParameters(baseReceivedMessage);
+              }
+            }
+            else
+            {
+              // INVALID_PARAMETER
+              SendInvalidParameters(baseReceivedMessage);
+            }
+          }
+          else
+          {
+            // INVALID_PARAMETER
+            SendInvalidParameters(baseReceivedMessage);
+          }
+        }
+        else
+        {
+          // INVALID_COMMAND
+          SendInvalidCommand(baseReceivedMessage);
+        }
+      }
+    }
+  }
+
+  // Enable/Disable DEBUG_FAST Mode
+  if (isFastDebug)
+  {
+    Serial.print("$<");
+    Serial.print("DF?");
+    Serial.print("PH:");
+    Serial.print(PHValue, 3); // PH sensor Value
+    Serial.print(",");
+    Serial.print("TEMP:");
+    Serial.print(TemperatureValue, 3); // Temperature sensor Value
+    Serial.print(",");
+    Serial.print("GS:");
+    Serial.print(GravValue, 3); // Gravity sensor value
+    Serial.println(">&");
+  }
+
+  // Enable/Disable DEBUG_FAST Mode
+  if (isPumpDebug)
+  {
+    Serial.print("$<");
+    Serial.print("DP?");
+    Serial.print("0:");
+    int mappedValue = map(DfRobotPump.read(), 0, 180, -255, 255);
+    Serial.print(mappedValue); // PUMP 0
+    Serial.print(",");
+    Serial.print("1:");
+    Serial.print(pumpsArray[0].GetCurrentSpeed()); // PUMP 1
+    Serial.print(",");
+    Serial.print("2:");
+    Serial.print(pumpsArray[1].GetCurrentSpeed()); // PUMP 2
+    Serial.print(",");
+    Serial.print("3:");
+    Serial.print(pumpsArray[2].GetCurrentSpeed()); // PUMP 3
+    Serial.println(">&");
+  }
+
+  // Getting values from read sensors
+  ReadValuesFromSensors();
 }
