@@ -82,9 +82,7 @@ $<DP?1:25,2:137,3:151,4:92>&
 ```sh
 ?
 ```
-`Odpowiedź: `
-```sh
-blabla
+
 ```
 ***
 ❗❗❗ Wszystkie wysyłane komendy funckyjne  musi poprzedzać dodanie  `CMD`.
