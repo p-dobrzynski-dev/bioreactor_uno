@@ -3,10 +3,9 @@
 Ten dokument zawiera instrukcje dzięki którym możliwe jest uruchomienie programu na płytce ArduinoUno oraz opis użytego protokołu komunikacyjnego wraz z przykładami.
 
 ### Użyte technologie:
-- [ArduinoUno Rev3] - 
-- [Platformio] -
-- [VisualStudio Code] - 
-- [freeRTOS] - 
+- [ArduinoUno Rev3]
+- [Platformio]
+- [VisualStudio Code]
 
 ### Uruchomienie programu 
 
@@ -85,7 +84,7 @@ $<DP?1:25,2:137,3:151,4:92>&
 ```
 `Odpowiedź: `
 ```sh
-Lista dostepnych komend
+blabla
 ```
 ***
 ❗❗❗ Wszystkie wysyłane komendy funckyjne  musi poprzedzać dodanie  `CMD`.
@@ -102,7 +101,7 @@ CMD,DEBUG_FAST,{on/off}
 
 `Przykład:`
 ```sh
-CMD,DEBUG_FAST,1 // Włączenie ramki szybkiej
+CND,DEBUG_FAST,1 // Włączenie ramki szybkiej
 ```
 ***
 ### DEBUG_PUMP
@@ -124,27 +123,53 @@ CMD,DEBUG_PUMP,0 // Wyłączenie ramki pomp
 ### SET_PUMP
 **Komenda ustawia prędkość silnika pomp** 
 
-Pompy mogą pracować w dwie strony, o kierunku ruchu decyduje wartość pompy może być dodatnia lub ujemna 
-
 ```sh
 CMD,SET_PUMP,{n},{x}
 ```
 | Argument | Zakres wartości | Opis argumentów 
 | -------- | --------------- | ----------- |
-| {n}   | **0 - 3** | pompy są ponumerowane od **0** do **3**
-| {x}   | **-255 - 255** | **-255** (minimalna wartość), **0** (wyłączone), **255** (maksymalna wartość)
+| {n}   | **1 - 4** | pompy są ponumerowane od **1** do **4**
+| {x}   | **0 - 255** | **0** (wyłączone), **255** (maksymalna wartość)
 
 `Przykład:`
 ```sh
-CMD,SET_PUMP,2,-170 // Ustawienie pompy nr 2 na wartość -170
+CMD,SET_PUMP,2,170 // Ustawienie pompy nr 2 na wartość 170
 ```
 ```sh
-CMD,SET_PUMP,1,0 // Ustawienie pompy nr 1 na wartość 0 (wyłączenie)
+CMD,SET_PUMP,1,0 // Ustawienie pompy nr 2 na wartość 0 (wyłączenie)
 ```
 ```sh
-CMD,SET_PUMP,3,255 // Ustawienie pompy nr 3 na wartość 255 (maksymalna wartość)
+CMD,SET_PUMP,4,255 // Ustawienie pompy nr 2 na wartość 255 (maksymalna wartość)
 ```
 ***
+
+# Ramki odpowiedzi
+*Każda otrzymana przez urządzenie ramka komendy odysła ramkę odpowiedzi.*
+
+
+
+**Wyróżnione typy odpowiedzi:**
+* OK
+* Syntax Error - błąd składni
+* Nieznana komenda
+* Niepoprawne paremetry komendy
+
+| Opdowiedź | Zmienna |Wartość 
+| -------- | --------------- | --------------- |
+| OK   | OK | **0** 
+| Syntax Error  |  BAD_SYNTAX | **1** |
+| Nieznana komenda | INVALID_COMMAND  | **2** | 
+| Syntax Error | INVALID_PARAMETER | **3** |
+
+Ramki odpowiedzi wysyłane są w jendym formacie 
+```sh
+{cmd}|ERROR|{x}
+```
+
+`Przykład:`
+```sh
+CMD,SET_PUMP,2,170|ERROR|0
+```
 
 ## License
 
@@ -154,5 +179,4 @@ MIT
 
 [ArduinoUno Rev3]: <https://store-usa.arduino.cc/products/arduino-uno-rev3>
 [Platformio]: <https://platformio.org/>
-[freeRTOS]: <https://www.freertos.org/>
 [VisualStudio Code]: <https://code.visualstudio.com/>
