@@ -154,7 +154,7 @@ CMD,SET_PUMP,4,255 // Ustawienie pompy nr 2 na wartość 255 (maksymalna wartoś
 * Nieznana komenda
 * Niepoprawne paremetry komendy
 
-| Opdowiedź | Zmienna |Wartość 
+| Odpowiedź | Zmienna |Wartość 
 | -------- | --------------- | --------------- |
 | OK   | OK | **0** 
 | Syntax Error  |  BAD_SYNTAX | **1** |
@@ -165,6 +165,11 @@ Ramki odpowiedzi wysyłane są w jendym formacie
 ```sh
 {cmd}|ERROR|{x}
 ```
+
+| Argument | Zakres wartości | Opis argumentów 
+| -------- | --------------- | ----------- |
+| {cmd}   | **tekst** | kopia przesłanej komendy
+| {x}   | **0 - 3** | kod błędu
 
 `Przykład:`
 ```sh
