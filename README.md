@@ -16,6 +16,7 @@ Komunikacja z komputerem odbywa się po przez wykorzystanie **portu szeregowego*
 - **ArduinoIDE** - Serial Monitor
 - **Tera Term**
 - **Putty**
+- **Termite**
 
 Prędkość tranmisji obecnie ustawiona jest na **115200** ale można ją zmienić w kodzie plik ```src/main.cpp``` .
 
